@@ -1,0 +1,53 @@
+name: Update vendor hash
+
+on:
+  workflow_dispatch: # Add this line
+  push:
+    branches: [main]
+    paths:
+      - "go.mod"
+      - "go.sum"
+
+jobs:
+  update-vendor-hash:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: experimental-features = nix-command flakes
+
+      - name: Tidy and vendor
+        run: |
+          go mod tidy
+          go mod vendor
+
+      - name: Compute vendor hash
+        id: hash
+        run: |
+          HASH=$(nix hash path vendor/)
+          echo "vendorHash=$HASH" >> $GITHUB_OUTPUT
+          echo "hash=$HASH" >> $GITHUB_ENV
+
+      - name: Update flake.nix
+        run: |
+          sed -i "s|vendorHash = \".*\";|vendorHash = \"${{ steps.hash.outputs.vendorHash }}\";|" flake.nix
+
+      - name: Commit changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add flake.nix
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "chore(flake): update vendorHash to $(nix hash path vendor/)"
+            git push
+          fi
