@@ -147,12 +147,14 @@ This is an [MCP](https://modelcontextprotocol.io/introduction) server that runs 
   }
 }
 </pre>
+
     <p><strong>Note</strong>:</p>
     <ul>
       <li>Replace <code>/path/to/your/clangd_binary</code> with the actual path to your clangd executable.</li>
       <li><code>--compile-commands-dir</code> should point to the directory containing your <code>compile_commands.json</code> file (e.g., <code>./build</code>, <code>./cmake-build-debug</code>).</li>
       <li>Ensure <code>compile_commands.json</code> is generated for your project for clangd to work effectively.</li>
     </ul>
+
   </div>
 </details>
 <details>
@@ -260,3 +262,29 @@ integrationtests/
 ```
 
 To update snapshots, run `UPDATE_SNAPSHOTS=true go test ./integrationtests/...`
+
+### Nix/NixOS
+
+#### To run
+
+Use `nix run github:<author>/mcp-language-server`.
+
+#### To use in a flake:
+
+1. Add to `inputs`:
+
+```nix
+{
+  inputs = {
+    mcp-language-server-flake.url = "github:<author>/mcp-language-server";
+  };
+}
+```
+
+2. Add to `system.packages`:
+
+```nix
+  system.packages = [
+      inputs.mcp-nixos-flake.packages.${pkgs.system}.default
+  ];
+```
